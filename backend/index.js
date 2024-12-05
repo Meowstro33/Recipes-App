@@ -17,6 +17,21 @@ const corsOptions = {
 // Here, it imports whatever is exported from the ./database file in the same directory.
 const pool = require('./database');
 
+const multer = require('multer');
+const { v4: uuidv4 } = require('uuid'); // For generating unique IDs for file names
+
+// Configure multer for file uploads
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        cb(null, path.join(__dirname, 'uploads')); // Save files in an "uploads" directory
+    },
+    filename: (req, file, cb) => {
+        const uniqueName = `${uuidv4()}-${file.originalname}`;
+        cb(null, uniqueName); // Append a unique ID to the file name
+    },
+});
+const upload = multer({ storage });
+
 // Adds the CORS middleware to the app with the specified corsOptions. This allows the backend to handle requests from http://localhost:3000.
 app.use(cors(corsOptions));
 // Adds middleware to parse incoming JSON requests. This enables the server to access data sent in the request body using req.body.
@@ -38,7 +53,7 @@ app.get('/api/browseRecipes', async function(req, res) {
     }
 });
 
-// Get recipes filtered by category
+// Get recipes filtered by main category in alphabetical order
 app.get('/api/browseRecipes/category/:maincategoryName', async function (req, res) {
     try {
         const { maincategoryName } = req.params; // Extract the category name from the request URL
@@ -65,7 +80,7 @@ app.get('/api/browseRecipes/category/:maincategoryName', async function (req, re
 });
 
 
-// Get recipes filtered by main category and subcategory
+// Get recipes filtered by subcategory in alphabetical order
 app.get('/api/recipes/category/:maincategoryName/subcategory/:subcategoryName', async function (req, res) {
     try {
         const { maincategoryName, subcategoryName } = req.params; // Extract category and subcategory names from the request URL
@@ -76,7 +91,7 @@ app.get('/api/recipes/category/:maincategoryName/subcategory/:subcategoryName', 
             JOIN recipe_sub_tags ON recipe_images.recipe_name = recipe_sub_tags.recipe_name
             WHERE recipe_images.thumbnail = true
             AND recipe_main_tags.tag_name = $1
-            AND recipe_sub_tags.sub_tag_name = $2
+            AND recipe_sub_tags.tag_name = $2
             ORDER BY recipe_images.recipe_name ASC`,
             [maincategoryName, subcategoryName] // Use parameterized queries for safety
         );
@@ -86,6 +101,56 @@ app.get('/api/recipes/category/:maincategoryName/subcategory/:subcategoryName', 
         }
 
         res.json(result.rows); // Respond with the filtered recipes
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+});
+
+
+
+// POST route to add a new recipe
+app.post('/api/addRecipe', upload.fields([{ name: 'image' }, { name: 'video' }]), async (req, res) => {
+    try {
+        const {
+            recipe_name,
+            description,
+            ingredients,
+            tags,
+            servings,
+            steps,
+            notes,
+        } = req.body;
+
+        const imageFile = req.files['image'] ? req.files['image'][0].filename : null;
+        const videoFile = req.files['video'] ? req.files['video'][0].filename : null;
+
+        // Insert into the recipes table (assuming this table exists)
+        await pool.query(
+            `INSERT INTO recipes (recipe_name, description, video_id, servings) 
+            VALUES ($1, $2, $3, $4)`,
+            [recipe_name, description, videoFile, servings]
+        );
+
+        
+        await pool.query(
+            `INSERT INTO recipe_images (image_id, description, video_id, servings) 
+            VALUES ($1, $2, $3, $4)`,
+            [recipe_name, description, videoFile, servings]
+        );
+
+        // Insert tags into the recipe_main_tags table
+        if (tags) {
+            const tagsArray = JSON.parse(tags); // Tags sent as a JSON string array
+            for (const tag of tagsArray) {
+                await pool.query(
+                    `INSERT INTO recipe_main_tags (recipe_name, tag_name) VALUES ($1, $2)`,
+                    [recipe_name, tag]
+                );
+            }
+        }
+
+        res.status(201).send('Recipe added successfully');
     } catch (err) {
         console.error(err.message);
         res.status(500).send('Server Error');
