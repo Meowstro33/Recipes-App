@@ -122,33 +122,58 @@ app.post('/api/addRecipe', upload.fields([{ name: 'image' }, { name: 'video' }])
             notes,
         } = req.body;
 
-        const imageFile = req.files['image'] ? req.files['image'][0].filename : null;
+        const imageFiles = req.files['image'] ? req.files['image'][0].filename : null;
         const videoFile = req.files['video'] ? req.files['video'][0].filename : null;
 
-        // Insert into the recipes table (assuming this table exists)
+        // Insert into the recipes table
         await pool.query(
             `INSERT INTO recipes (recipe_name, description, video_id, servings) 
             VALUES ($1, $2, $3, $4)`,
             [recipe_name, description, videoFile, servings]
         );
 
-        
-        await pool.query(
-            `INSERT INTO recipe_images (image_id, description, video_id, servings) 
-            VALUES ($1, $2, $3, $4)`,
-            [recipe_name, description, videoFile, servings]
-        );
+        const ingredientsArray = JSON.parse(ingredients); // Ingredients sent as a JSON string array, this should be array of objects
+            for (const ingredient of ingredientsArray) {
+                await pool.query(
+                    `INSERT INTO recipe_ingredients (ingredient_name, recipe_name, measurement_type, measurement_quantity, notes)
+                    VALUES ($1, $2, $3, $4, $5)`,
+                    [ingredient.ingredient_name, recipe_name, ingredient.measurement_type, ingredient.measurement_quantity, ingredient.notes]
+                );
+            }
+
+
+        if (notes) {
+            const notesArray = JSON.parse(notes); // Notes sent as a JSON string array
+            for (const note of notesArray) {
+                    await pool.query(
+                        `INSERT INTO recipe_notes (recipe_name, description) 
+                        VALUES ($1, $2)`,
+                        [recipe_name, note]
+                    );
+                }
+            }
+
+
+        for (let i = 0; i < imageFiles.length; i++) {
+                const isThumbnail = i === 0; // First image is the thumbnail
+                await pool.query(
+                    `INSERT INTO recipe_images (recipe_name, image_id, thumbnail) VALUES ($1, $2, $3)`,
+                    [recipe_name, imageFiles[i], isThumbnail]
+                );
+            }
 
         // Insert tags into the recipe_main_tags table
         if (tags) {
             const tagsArray = JSON.parse(tags); // Tags sent as a JSON string array
             for (const tag of tagsArray) {
                 await pool.query(
-                    `INSERT INTO recipe_main_tags (recipe_name, tag_name) VALUES ($1, $2)`,
+                    `INSERT INTO recipe_tags (recipe_name, tag_name) VALUES ($1, $2)`,
                     [recipe_name, tag]
                 );
             }
         }
+
+
 
         res.status(201).send('Recipe added successfully');
     } catch (err) {
