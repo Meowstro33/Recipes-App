@@ -42,46 +42,57 @@ app.use(express.json());
 // express.static() makes all files in that folder accessible via the server.
 app.use(express.static(path.join(__dirname, 'public')));
 
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+
 // Gets all recipes(thumbnail + name) in alphabetical order
 app.get('/api/browseRecipes', async function(req, res) {
     try {
-        const result = await pool.query('SELECT recipe_name, image_id FROM recipe_images WHERE thumbnail = true ORDER BY recipe_name ASC');
-        res.json(result.rows);
+        const recipesResult = await pool.query('SELECT recipe_name, image_id FROM recipe_images WHERE thumbnail = true ORDER BY recipe_name ASC');
+        const categoriesResult = await pool.query('SELECT category_name FROM main_categories ORDER BY category_name ASC');
+        console.log("Categories:", categoriesResult.rows);
+        
+        res.json({
+            recipes: recipesResult.rows,
+            categories: categoriesResult.rows,
+        });
     } catch (err) {
         console.error(err.message);
         res.status(500).send('Server Error');
     }
 });
 
-// Get recipes filtered by main category in alphabetical order
-app.get('/api/browseRecipes/category/:maincategoryName', async function (req, res) {
+
+// Get subcategories filtered by main category
+app.get('/api/browseRecipes/Subcategory/:maincategoryName', async function (req, res) {
     try {
-        const { maincategoryName } = req.params; // Extract the category name from the request URL
-        const result = await pool.query(
-            `SELECT recipe_images.recipe_name, recipe_images.image_id
-             FROM recipe_images 
-             JOIN recipe_main_tags 
-             ON recipe_images.recipe_name = recipe_main_tags.recipe_name 
-             WHERE recipe_images.thumbnail = true 
-             AND recipe_main_tags.tag_name = $1 
-             ORDER BY recipe_images.recipe_name ASC`,
-            [maincategoryName] // Use parameterized queries for safety
+        const { maincategoryName } = req.params;
+
+        // Query for subcategories of the main category
+        const categoriesResult = await pool.query(
+            'SELECT sub_category_name FROM sub_categories WHERE main_category = $1 ORDER BY order_number ASC',
+            [maincategoryName]
         );
 
-        if (result.rows.length === 0) {
-            return res.status(404).send('No recipes found for this category');
-        }
+        // Query for all recipes, still sorted alphabetically
+        const recipesResult = await pool.query(
+            'SELECT recipe_name, image_id FROM recipe_images WHERE thumbnail = true ORDER BY recipe_name ASC'
+        );
 
-        res.json(result.rows); // Respond with the filtered recipes
+        res.json({
+            recipes: recipesResult.rows,
+            subcategories: categoriesResult.rows,
+        });
     } catch (err) {
         console.error(err.message);
         res.status(500).send('Server Error');
     }
 });
+
 
 
 // Get recipes filtered by subcategory in alphabetical order
-app.get('/api/recipes/category/:maincategoryName/subcategory/:subcategoryName', async function (req, res) {
+app.get('/api/browseRecipes/Subcategory/filterBySubcategory/:subcategoryName', async function (req, res) {
     try {
         const { maincategoryName, subcategoryName } = req.params; // Extract category and subcategory names from the request URL
         const result = await pool.query(
@@ -121,7 +132,7 @@ app.post('/api/addRecipe', upload.fields([{ name: 'image' }, { name: 'video' }])
             steps,
             notes,
         } = req.body;
-
+        // change imageFiles
         const imageFiles = req.files['image'] ? req.files['image'][0].filename : null;
         const videoFile = req.files['video'] ? req.files['video'][0].filename : null;
 
@@ -155,10 +166,10 @@ app.post('/api/addRecipe', upload.fields([{ name: 'image' }, { name: 'video' }])
 
 
         for (let i = 0; i < imageFiles.length; i++) {
-                const isThumbnail = i === 0; // First image is the thumbnail
-                await pool.query(
-                    `INSERT INTO recipe_images (recipe_name, image_id, thumbnail) VALUES ($1, $2, $3)`,
-                    [recipe_name, imageFiles[i], isThumbnail]
+            const isThumbnail = i === 0; // First image is the thumbnail
+            await pool.query(
+                `INSERT INTO recipe_images (recipe_name, image_id, thumbnail) VALUES ($1, $2, $3)`,
+                [recipe_name, imageFiles[i], isThumbnail]
                 );
             }
 

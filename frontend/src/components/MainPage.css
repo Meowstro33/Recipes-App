@@ -1,0 +1,44 @@
+/* MainPage container should take the full viewport height */
+.main-page {
+    height: 100vh; /* Full viewport height */
+    max-width: 100%;
+    display: flex;
+    flex-direction: column;
+    margin: 0;
+    padding: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+  
+  /* Each row should take up 50% of the page height */
+  .section {
+    flex: 1; /* Makes the row take up equal space vertically */
+    display: flex;
+  }
+  
+  /* Each button should fill its column and stretch to the full row height */
+  button {
+    flex: 1; /* Makes the button take up equal horizontal space in the row */
+    height: 100%; /* Ensures the button fills the row's height */
+    border: none;
+    margin: 0;
+    text-align: center;
+    background-color: black;
+    color: white;
+    font-size: 1.5rem;
+    transition: transform 0.2s ease-in-out, background-color 0.2s ease-in-out;
+  }
+  
+  /* Hover effect for the buttons */
+  button:hover {
+    /* transform: scale(1.01); Slight zoom effect */
+    background-color: grey; /* Darker shade of blue */
+    font-size: xx-large;
+  }
+
+
+.container-fluid {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+}
+

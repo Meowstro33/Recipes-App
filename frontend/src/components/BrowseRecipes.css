@@ -1,0 +1,100 @@
+/* Container to align sidebar and main content */
+.browse-recipes-container {
+    display: flex;
+    flex-direction: row;
+    min-height: 100vh;
+    background-color: #f8f9fa;
+    font-family: Arial, sans-serif;
+  }
+  
+  /* Sidebar Styling */
+  .sidebar {
+    width: 250px;
+    background-color: #343a40;
+    color: white;
+    padding: 1rem;
+    box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+    height: 100%;
+    position: fixed;
+    top: 0;
+    left: 0;
+    overflow-y: auto;
+  }
+  
+  .sidebar h3 {
+    font-size: 1.2rem;
+    margin-bottom: 1rem;
+    border-bottom: 1px solid #495057;
+    padding-bottom: 0.5rem;
+  }
+  
+  .categories-list {
+    list-style: none;
+    padding: 0;
+  }
+  
+  .category-button {
+    display: block;
+    width: 100%;
+    background: none;
+    color: white;
+    text-align: left;
+    border: none;
+    padding: 0.5rem;
+    margin-bottom: 0.5rem;
+    border-radius: 4px;
+    font-size: 1rem;
+    transition: background 0.3s;
+  }
+  
+  .category-button:hover {
+    background-color: #495057;
+    cursor: pointer;
+    font-size: large;
+  }
+  
+  /* Main Content Styling */
+  .main-content {
+    margin-left: 270px; /* Leave space for the sidebar */
+    padding: 2rem;
+    flex: 1;
+  }
+  
+  .main-content h1 {
+    margin-bottom: 1.5rem;
+    font-size: 2rem;
+    color: #333;
+  }
+  
+  /* Recipes Grid */
+  .recipes-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.5rem;
+  }
+  
+  .recipe-item {
+    flex: 1 1 calc(33.333% - 1.5rem); /* Three cards per row */
+    background-color: white;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    text-align: center;
+  }
+  
+  .card-img {
+    width: 100%;
+    height: 200px;
+    object-fit: cover;
+  }
+  
+  .card-body {
+    padding: 1rem;
+  }
+  
+  .card-title {
+    font-size: 1.2rem;
+    color: #343a40;
+  }
+  
